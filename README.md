@@ -4,24 +4,42 @@
 
 Expose [Bili23-Downloader](https://github.com/ScottSloan/Bili23-Downloader)'s download-URL resolution as a REST API — no GUI, no browser, no PySide6.
 
-
 ```bash
-cd api-server && uv sync && uv run python -m serve
-# → http://127.0.0.1:8000
+git clone https://github.com/ZHider/Bili23-Downloader-ApiServer.git
+cd Bili23-Downloader-ApiServer
+git submodule update --init   # pull the embedded Bili23-Downloader source
+uv sync                       # install deps from lockfile (~20 packages, no Qt)
+uv run python -m serve        # start server on http://127.0.0.1:8000
 ```
 
 ## Requirements
 
 - Python 3.10.x
-- `uv` (package manager, [install](https://docs.astral.sh/uv/#installation))
+- `uv` (recommended package manager, [install](https://docs.astral.sh/uv/#installation)) or `pip`
 
 ## Quick Start
 
 ```bash
-git clone https://github.com/ScottSloan/Bili23-Downloader.git
-cd Bili23-Downloader/api-server
-uv sync                # install dependencies (~20 packages, no Qt)
-uv run python -m serve # start server on http://127.0.0.1:8000
+git clone https://github.com/ZHider/Bili23-Downloader-ApiServer.git
+cd Bili23-Downloader-ApiServer
+git submodule update --init
+uv sync
+uv run python -m serve
+```
+
+Or using plain pip:
+
+```bash
+pip install -r requirements.txt
+python -m serve
+```
+
+The server is also registered as a CLI script — after install:
+
+```bash
+bili23-server
+# or
+python -m bili23_server
 ```
 
 ## API
@@ -65,19 +83,18 @@ Sessions expire after 10 minutes.
 ## Architecture
 
 ```
-┌─────────────┐   imports     ┌──────────────┐
+┌─────────────┐   import      ┌──────────────┐
 │  serve.py   │──────────────▶│  worker.py   │
-│  (entry)    │               │  (wrapper)   │
-└──────┬──────┘               └──────┬───────┘
-       │                            │
-       │ routes.py                  │ from util.*
-       │ session.py                 ▼
-       │                     ┌──────────────┐
-       │                     │ Bili23-      │
-       │                     │ Downloader   │
-       │                     │ src/         │
-       │                     └──────────────┘
-       │
+│  __main__.py│               │  (wrapper)   │
+│  (entry)    │               └──────┬───────┘
+└──────┬──────┘                      │
+       │                             │ from util.*
+       │ routes.py                   ▼
+       │ session.py          ┌──────────────────────┐
+       │ pyproject.toml      │ Bili23-Downloader    │
+       │ uv.lock             │ (git submodule)      │
+       │ requirements.txt    │ src/                 │
+       │                     └──────────────────────┘
        ▼
 ┌──────────────┐   intercepts
 │  stubs/      │── PySide6 / qfluentwidgets
@@ -86,9 +103,11 @@ Sessions expire after 10 minutes.
 └──────────────┘
 ```
 
-**Reuses the parent project's code directly** — the server does not duplicate or rewrite any download logic. It wraps `VideoInfoParser`, `AudioInfoParser`, `QueryWorker`, `SyncNetWorkRequest`, and `ParserBase` from the original codebase.
+**Reuses the parent project's code directly** — the server does not duplicate or rewrite any download logic. It wraps `VideoInfoParser`, `AudioInfoParser`, `QueryWorker`, `SyncNetWorkRequest`, and `ParserBase` from the original codebase (pulled as a [git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules)).
 
-**No GUI dependencies** — PySide6 and qfluentwidgets are stubbed at import time via `sys.modules` hooks. The server only depends on `httpx`, `fastapi`, `uvicorn`, and `psutil` (~20 packages total).
+**No GUI dependencies** — PySide6 and qfluentwidgets are stubbed at import time via `sys.modules` hooks. The server only depends on `httpx`, `fastapi`, `uvicorn`, and `psutil` (~20 packages including transitive deps, no Qt components).
+
+**Reproducible installs** — `uv.lock` is committed to the repo. `uv sync` always resolves the exact same dependency tree. For pip users, `requirements.txt` is kept in sync via `uv export --frozen --no-dev`.
 
 ## Development
 
@@ -96,6 +115,9 @@ Sessions expire after 10 minutes.
 uv sync --group dev  # includes flake8, autopep8
 uv run flake8        # lint check
 uv run autopep8 --aggressive --in-place *.py stubs/*.py
+
+# keep requirements.txt in sync after changing dependencies
+uv export --frozen --no-dev --output-file requirements.txt
 ```
 
 ## License
