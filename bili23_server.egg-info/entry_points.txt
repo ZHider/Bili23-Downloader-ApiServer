@@ -1,2 +1,0 @@
-[console_scripts]
-bili23-server = serve:main

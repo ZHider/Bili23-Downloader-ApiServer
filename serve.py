@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 # ---- add parent project's src/ to sys.path before *any* project import ----
-_src = Path(__file__).resolve().parent.parent / "src"
+_src = Path(__file__).resolve().parent / "Bili23-Downloader-main" / "src"
 if str(_src) not in sys.path:
     sys.path.insert(0, str(_src))
 
