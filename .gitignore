@@ -2,4 +2,4 @@
 __pycache__/
 *.pyc
 bili23_server.egg-info/
-uv.lock
+.codegraph
